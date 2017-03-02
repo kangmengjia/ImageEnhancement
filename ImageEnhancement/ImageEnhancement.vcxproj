@@ -194,6 +194,7 @@
     <ClInclude Include="ImageEnhancementView.h" />
     <ClInclude Include="ImageProcessing.h" />
     <ClInclude Include="MainFrm.h" />
+    <ClInclude Include="MyValueProperty.h" />
     <ClInclude Include="OutputWnd.h" />
     <ClInclude Include="PropertiesWnd.h" />
     <ClInclude Include="Resource.h" />
@@ -208,6 +209,7 @@
     <ClCompile Include="ImageEnhancementView.cpp" />
     <ClCompile Include="ImageProcessing.cpp" />
     <ClCompile Include="MainFrm.cpp" />
+    <ClCompile Include="MyValueProperty.cpp" />
     <ClCompile Include="OutputWnd.cpp" />
     <ClCompile Include="PropertiesWnd.cpp" />
     <ClCompile Include="stdafx.cpp">

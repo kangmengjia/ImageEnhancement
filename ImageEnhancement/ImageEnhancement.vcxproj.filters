@@ -54,6 +54,9 @@
     <ClInclude Include="ImageProcessing.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="MyValueProperty.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ImageEnhancement.cpp">
@@ -84,6 +87,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="ImageProcessing.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="MyValueProperty.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

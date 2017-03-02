@@ -2,8 +2,10 @@
 // ImageEnhancementDoc.h : CImageEnhancementDoc 类的接口
 //
 
+#ifndef __ImageEnhancementDoc_h__
+#define __ImageEnhancementDoc_h__
 
-#pragma once
+
 
 
 class CImageEnhancementDoc : public CDocument
@@ -55,3 +57,4 @@ protected:
 public:
 //	virtual BOOL OnOpenDocument(LPCTSTR lpszPathName);
 };
+#endif // __ImageEnhancementDoc_h__

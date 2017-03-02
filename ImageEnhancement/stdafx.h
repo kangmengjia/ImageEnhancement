@@ -49,8 +49,15 @@
 #include "device_launch_parameters.h"
 
 
-
-
+typedef struct
+{
+	int     scale;
+	int     nscales;
+	int     scales_mode;
+} RetinexParams;
+#define RETINEX_UNIFORM 0
+#define RETINEX_LOW     1
+#define RETINEX_HIGH    2
 
 
 #ifdef _UNICODE

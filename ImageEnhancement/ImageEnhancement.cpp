@@ -165,6 +165,8 @@ protected:
 // 实现
 protected:
 	DECLARE_MESSAGE_MAP()
+//	afx_msg LRESULT OnAfxWmPropertyChanged(WPARAM wParam, LPARAM lParam);
+//	afx_msg LRESULT OnPropertyChanged(WPARAM wParam, LPARAM lParam);
 };
 
 CAboutDlg::CAboutDlg() : CDialogEx(CAboutDlg::IDD)
@@ -177,6 +179,8 @@ void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 }
 
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
+//	ON_REGISTERED_MESSAGE(AFX_WM_PROPERTY_CHANGED, &CAboutDlg::OnAfxWmPropertyChanged)
+//	ON_REGISTERED_MESSAGE(WM_PROPERTY_CHANGED, &CAboutDlg::OnPropertyChanged)
 END_MESSAGE_MAP()
 
 // 用于运行对话框的应用程序命令
@@ -212,3 +216,15 @@ void CImageEnhancementApp::SaveCustomState()
 
 
 
+
+
+//afx_msg LRESULT CAboutDlg::OnAfxWmPropertyChanged(WPARAM wParam, LPARAM lParam)
+//{
+//	return 0;
+//}
+
+
+//afx_msg LRESULT CAboutDlg::OnPropertyChanged(WPARAM wParam, LPARAM lParam)
+//{
+//	return 0;
+//}
