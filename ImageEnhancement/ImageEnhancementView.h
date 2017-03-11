@@ -25,7 +25,7 @@ private:
 	int m_time_use = 0;
 
 	RetinexParams  m_retinex_param;
-// 操作
+	GuideParames   m_guide_param;
 public:
 
 	CMFCPropertyGridProperty* m_property_retinex;
@@ -65,6 +65,8 @@ public:
 	afx_msg void OnRetinex();
 	afx_msg LRESULT OnReloadMsg(WPARAM wparam, LPARAM lparam);
 protected:
+public:
+	afx_msg void OnDark();
 };
 
 #ifndef _DEBUG  // ImageEnhancementView.cpp 中的调试版本

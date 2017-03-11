@@ -288,3 +288,413 @@ void CImageProcessing::compute_mean_var(float *src, float *mean, float *var, int
 	*var = (vsquared - (*mean * *mean));
 	*var = sqrt(*var); /* var */
 }
+
+
+void CImageProcessing::ImageProcessByDark(cv::Mat src, cv::Mat dst, GuideParames para)
+{
+	int width, height, size;
+	uchar       *psrc = nullptr;
+	float       *pdst = nullptr;
+	float       *dark = nullptr;//暗通道图
+	float       *t = nullptr;   //透射率图
+	int         i, j;
+	int         img_channel;
+	double sum = 0.;
+	int pointNum = 0;
+	float A;
+	double pix;
+	float stretch_p[256], stretch_p1[256], stretch_num[256];
+
+
+
+	width = src.cols;
+	height = src.rows;
+	size = width * height;
+	img_channel = src.channels();
+	assert(img_channel == 3);
+	dark = (float*)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, size * sizeof(float));
+	if (dark == nullptr)
+		return;
+
+	//获取暗原色
+	for (i = 0; i < size; ++i)
+	{
+		psrc = src.data + i*img_channel;
+		pdst = dark + i;
+
+		uchar b = psrc[0];
+		uchar g = psrc[1];
+		uchar r = psrc[2];
+		*pdst = ((b < g) ? b : g) < r ? ((b < g) ? b : g) : r;
+	}
+	memset(stretch_p, 0, sizeof(stretch_p));
+	memset(stretch_p1, 0, sizeof(stretch_p1));
+	memset(stretch_num, 0, sizeof(stretch_num));
+	for (i = 0; i < size; ++i)
+	{
+		float pixel0 = dark[i];
+		int pixel = (int)pixel0;
+		stretch_num[pixel]++;
+	}
+	for (i = 0; i < 256; ++i)
+	{
+		stretch_p[i] = stretch_num[i] / size;
+	}
+	for (i = 0; i < 256; ++i)
+	{
+		for (j = 0; j <= i; ++j)
+		{
+			stretch_p1[i] += stretch_p[j];
+			if (stretch_p1[i] > 0.999)
+			{
+				pix = (double)i;
+				i = 256;
+				break;
+			}
+		}
+	}
+	for (i = 0; i < size; ++i)
+	{
+		double temp = dark[i];
+		if (temp > pix)
+		{
+			psrc = src.data + i*img_channel;
+			pointNum++;
+			sum += psrc[0];
+			sum += psrc[1];
+			sum += psrc[2];
+		}
+	}
+	A = sum / (3 * pointNum);
+	if (A < 220.0)
+	{
+		A = 230.0;
+	}
+	t = (float*)::GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, size * sizeof(float));
+	if (t == nullptr)
+	{
+		::GlobalFree(dark);
+		return;
+	}
+	getT(dark, t, width, height, para.min_radius);
+	::GlobalFree(dark);
+
+	guideFilter_color(t, src, para.guide_radius, 0.0004);
+
+	for (int i = 0; i < size; ++i)
+	{
+		t[i] = 1 - 0.9 * (t[i] / A);
+		if (t[i] < 0)
+			t[i] = 0;
+	}
+	uchar* ppsrc;
+	for (i = 0; i < size; ++i)
+	{
+		ppsrc = src.data + i * img_channel;
+		psrc = dst.data + i*img_channel;
+		pdst = t + i;
+
+		psrc[0] = (uchar)((ppsrc[0] - A*(1 - *pdst)) / *pdst);
+		psrc[1] = (uchar)((ppsrc[1] - A*(1 - *pdst)) / *pdst);
+		psrc[2] = (uchar)((ppsrc[2] - A*(1 - *pdst)) / *pdst);
+	}
+	::GlobalFree(t);
+}
+
+void CImageProcessing::guideFilter_color(float* t, cv::Mat src, int radius, float eps)
+{
+	int  size = src.cols * src.rows;
+	cv::Mat  bgr[3];
+
+	cv::split(src, bgr);
+	for (int i = 0; i < 3; ++i)
+	{
+		guidedFilter(bgr[i], t, radius, eps);
+	}
+	for (int i = 0; i < size; i++)
+	{
+		t[i] = 0.299 * bgr[2].data[i] + 0.587 * bgr[1].data[i] + 0.114 * bgr[0].data[i];
+	}
+
+}
+
+void CImageProcessing::guidedFilter(cv::Mat guide_image, float* src, int radius, double eps)
+{
+	int size = guide_image.cols * guide_image.rows;
+	int width = guide_image.cols, height = guide_image.rows;
+	float *temp_IP = (float*)::GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, sizeof(float)*size);
+	float *temp_II = (float*)::GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, sizeof(float)*size);
+	float *temp_P = (float*)::GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, sizeof(float)*size);
+	float *temp_I = (float*)::GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, sizeof(float)*size);
+	float *cov_IP = (float*)::GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, sizeof(float)*size);
+	float *var_II = (float*)::GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, sizeof(float)*size);
+	float *a = (float*)::GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, sizeof(float)*size);
+	float *b = (float*)::GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, sizeof(float)*size);
+
+	for (int i = 0; i < size; i++)
+	{
+		temp_P[i] = src[i];
+	}
+	for (int i = 0; i < size; i++)
+	{
+		temp_I[i] = guide_image.data[i];
+	}
+	for (int i = 0; i < size; ++i)
+	{
+		temp_IP[i] = temp_I[i] * temp_P[i];
+	}
+	for (int i = 0; i < size; ++i)
+	{
+		temp_II[i] = temp_I[i] * temp_I[i];
+	}
+	boxFilter(temp_I, width, height, radius);
+	boxFilter(temp_P, width, height, radius);
+	boxFilter(temp_IP, width, height, radius);
+	boxFilter(temp_II, width, height, radius);
+	for (int i = 0; i < size; ++i)
+	{
+		var_II[i] = temp_II[i] - temp_I[i] * temp_I[i];
+	}
+	for (int i = 0; i < size; ++i)
+	{
+		cov_IP[i] = temp_IP[i] - temp_I[i] * temp_P[i];
+	}
+	for (int i = 0; i < size; ++i)
+	{
+		a[i] = cov_IP[i] / (var_II[i] + eps);
+	}
+	for (int i = 0; i < size; ++i)
+	{
+		b[i] = temp_P[i] - a[i] * temp_I[i];
+	}
+	boxFilter(a, width, height, radius);
+	boxFilter(b, width, height, radius);
+	for (int i = 0; i < size; ++i)
+	{
+		guide_image.data[i] = a[i] * guide_image.data[i] + b[i];
+	}
+	::GlobalFree(temp_I);
+	::GlobalFree(temp_P);
+	::GlobalFree(temp_II);
+	::GlobalFree(temp_IP);
+	::GlobalFree(cov_IP);
+	::GlobalFree(var_II);
+	::GlobalFree(a);
+	::GlobalFree(b);
+	
+}
+
+void CImageProcessing::boxFilter(float* src, int width, int height, int radius)
+{
+	float *buff = (float*)::GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, sizeof(float)*width*height);
+	// 列方向
+	for (int i = 0; i < height; i++)
+	{
+		if (i != 0)
+			for (int j = 0; j < width; j++)
+				buff[i*width + j] = src[i*width + j] + buff[(i - 1)*width + j];
+		else
+			for (int j = 0; j < width; j++)
+				buff[i*width + j] = src[i*width + j];
+	}
+	for (int i = 0; i < radius + 1; i++)
+	{
+		for (int j = 0; j < width; j++)
+		{
+			src[i*width + j] = buff[(radius + i)*width + j];
+		}
+	}
+	for (int i = radius + 1; i < height - radius - 1; i++)
+	{
+		for (int j = 0; j < width; j++)
+		{
+			src[i*width + j] = buff[(radius + i)*width + j] - buff[(i - radius - 1)*width + j];
+		}
+	}
+	for (int i = height - radius - 1; i < height; i++)
+	{
+		for (int j = 0; j < width; j++)
+		{
+			src[i*width + j] = buff[(height - 1)*width + j] - buff[(i - radius - 1)*width + j];
+		}
+	}
+	// 行方向
+	for (int i = 0; i < width; i++)
+	{
+		if (i != 0)
+			for (int j = 0; j < height; j++)
+				buff[j*width + i] = src[j*width + i] + buff[j*width + i - 1];
+		else
+			for (int j = 0; j < height; j++)
+				buff[j*width + i] = src[j*width + i];
+	}
+	for (int i = 0; i < radius + 1; i++)
+	{
+		for (int j = 0; j < height; j++)
+		{
+			src[j*width + i] = buff[j*width + (i + radius)];
+		}
+	}
+	for (int i = radius + 1; i < width - radius - 1; i++)
+	{
+		for (int j = 0; j < height; j++)
+		{
+			src[j*width + i] = buff[j*width + (i + radius)] - buff[j*width + (i - radius - 1)];
+		}
+	}
+	for (int i = width - radius - 1; i < width; i++)
+	{
+		for (int j = 0; j < height; j++)
+		{
+			src[j*width + i] = buff[j*width + width - 1] - buff[j*width + (i - radius - 1)];
+		}
+	}
+
+	int w = radius * 2 + 1;
+	for (int i = 0; i < radius; i++)
+	{
+		for (int j = i; j < width - i; j++)
+		{
+			if (j < radius)
+			{
+				src[i*width + j] /= ((radius + 1 + i)*(radius + 1 + j));
+				src[(height - i - 1)*width + j] /= ((radius + 1 + i)*(radius + 1 + j));
+			}
+			else if (width - j - 1 < radius)
+			{
+				src[i*width + j] /= ((radius + 1 + i)*(radius + 1 + width - j - 1));
+				src[(height - i - 1)*width + j] /= ((radius + 1 + i)*(radius + 1 + width - j - 1));
+			}
+			else
+			{
+				src[i*width + j] /= (radius + 1 + i)*w;
+				src[(height - i - 1)*width + j] /= (radius + 1 + i)*w;
+			}
+		}
+	}
+	for (int i = 0; i < radius; i++)
+	{
+		for (int j = i + 1; j < height - i - 1; j++)
+		{
+			if (j < radius)
+			{
+				src[j*width + i] /= ((radius + 1 + i)*(radius + 1 + j));
+				src[j*width + (width - i - 1)] /= ((radius + 1 + i)*(radius + 1 + j));
+			}
+			else if (height - j - 1 < radius)
+			{
+				src[j*width + i] /= ((radius + 1 + i)*(radius + 1 + height - j - 1));
+				src[j*width + (width - i - 1)] /= ((radius + 1 + i)*(radius + 1 + height - j - 1));
+			}
+			else
+			{
+				src[j*width + i] /= (radius + 1 + i)*w;
+				src[j*width + (width - 1 - i)] /= (radius + i + 1)*w;
+			}
+		}
+	}
+	for (int i = radius; i < height - radius; i++)
+	{
+		for (int j = radius; j < width - radius; j++)
+		{
+			src[i*width + j] /= w*w;
+		}
+	}
+	::GlobalFree(buff);
+}
+
+void CImageProcessing::getT(float* dark, float* t, int width, int height, int r)
+{
+	int d = 2 * r + 1;
+	float *left2right = (float *)::GlobalAlloc(GMEM_ZEROINIT | GMEM_FIXED, sizeof(float)*width);
+	float *right2left = (float *)::GlobalAlloc(GMEM_ZEROINIT | GMEM_FIXED, sizeof(float)*width);
+	float *high2low = (float *)::GlobalAlloc(GMEM_ZEROINIT | GMEM_FIXED, sizeof(float)*height);
+	float *low2high = (float *)::GlobalAlloc(GMEM_ZEROINIT | GMEM_FIXED, sizeof(float)*height);
+
+	// 行方向
+	for (int i = 0; i < height; i++)
+	{
+		for (int j = 0; j < width; j += d)
+		{
+			for (int k = 0; k < d && j + k < width; k++)
+			{
+				int left = j + k;
+				int right = j + d - k - 1;
+				if (right >= width)
+				{
+					right = j + width%d - k - 1;
+				}
+				if (k != 0)
+				{
+					left2right[left] = dark[i*width + left] < left2right[left - 1] ? dark[i*width + left] : left2right[left - 1];
+					right2left[right] = dark[i*width + right] < right2left[right + 1] ? dark[i*width + right] : right2left[right + 1];
+				}
+				else
+				{
+					left2right[left] = dark[i*width + left];
+					right2left[right] = dark[i*width + right];
+				}
+			}
+		}
+		for (int j = 0; j < width; j++)
+		{
+			if (j < r)
+			{
+				t[i*width + j] = left2right[j + r];
+			}
+			else if (width - j - 1 < r)
+			{
+				t[i*width + j] = right2left[j - r];
+			}
+			else
+			{
+				t[i*width + j] = left2right[j + r] < right2left[j - r] ? left2right[j + r] : right2left[j - r];
+			}
+		}
+	}
+	// 列方向
+	for (int i = 0; i < width; i++)
+	{
+		for (int j = 0; j < height; j += d)
+		{
+			for (int k = 0; k < d && j + k < height; k++)
+			{
+				int low = j + k;
+				int high = j + d - k - 1;
+				if (high >= height)
+				{
+					high = j + height%d - k - 1;
+				}
+				if (k != 0)
+				{
+					low2high[low] = t[low*width + i] < low2high[low - 1] ? t[low*width + i] : low2high[low - 1];
+					high2low[high] = t[high*width + i] < high2low[high + 1] ? t[high*width + i] : high2low[high + 1];
+				}
+				else
+				{
+					low2high[low] = t[low*width + i];
+					high2low[high] = t[high*width + i];
+				}
+			}
+		}
+		for (int j = 0; j < height; j++)
+		{
+			if (j < r)
+			{
+				t[j*width + i] = low2high[j + r];
+			}
+			else if (height - j - 1 < r)
+			{
+				t[j*width + i] = high2low[j - r];
+			}
+			else
+			{
+				t[j*width + i] = low2high[j + r] < high2low[j - r] ? low2high[j + r] : high2low[j - r];
+			}
+		}
+	}
+	::GlobalFree(right2left);
+	::GlobalFree(left2right);
+	::GlobalFree(high2low);
+	::GlobalFree(low2high);
+}

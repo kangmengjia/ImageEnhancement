@@ -198,6 +198,7 @@ BEGIN
     POPUP "图像处理"
     BEGIN
         MENUITEM "Retinex",                     ID_32771
+        MENUITEM "暗原色去雾",                       ID_32772
     END
     POPUP "帮助(&H)"
     BEGIN
