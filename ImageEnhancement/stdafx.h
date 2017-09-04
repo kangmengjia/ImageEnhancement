@@ -35,35 +35,13 @@
 #endif // _AFX_NO_AFXCMN_SUPPORT
 
 #include <afxcontrolbars.h>     // 功能区和控件条的 MFC 支持
+#include <vector>
+using namespace std;
 
 
-
-#include <opencv2/core/core.hpp>  
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv/cv.h>
-#include <opencv2/opencv.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
+#include "Import.h"
 
 
-#include "cuda_runtime.h"
-#include "device_launch_parameters.h"
-
-
-#define RETINEX_UNIFORM 0
-#define RETINEX_LOW     1
-#define RETINEX_HIGH    2
-typedef struct
-{
-	int     scale;
-	int     nscales;
-	int     scales_mode;
-} RetinexParams;
-
-typedef struct
-{
-	int min_radius;
-	int guide_radius;
-}GuideParames;
 
 
 #ifdef _UNICODE

@@ -7,6 +7,17 @@
 
 #include "ImageEnhancementDoc.h"
 
+extern void ImageProcessByDarkWithBilateralFilter(cv::Mat src, cv::Mat dst, GuideParames para, DWORD &s, DWORD &e);
+extern void ImageProcessByDark(cv::Mat src, cv::Mat dst, GuideParames para);
+extern void retinex(cv::Mat src, cv::Mat im_dst, RetinexParams retinex_param);
+extern void retinex_GPU(cv::Mat src, cv::Mat im_dst, RetinexParams retinex_param, DWORD &s, DWORD &e);
+extern void initCUDAMem(int width, int height, int channels);
+extern void initTexMem(int width, int height, uint *hImage);
+extern void freeTexMem();
+extern void freeCUDAMem();
+extern void initCUDAMem_bil(int width, int height);
+extern void freeCUDAMem_bil();
+extern void updateGaussian_bil(float sigma_color, float sigma_space, int radius);
 class CImageEnhancementView : public CView
 {
 protected: // 仅从序列化创建
@@ -67,6 +78,7 @@ public:
 protected:
 public:
 	afx_msg void OnDark();
+	afx_msg void OnDarkWithBilateralFilter();
 };
 
 #ifndef _DEBUG  // ImageEnhancementView.cpp 中的调试版本

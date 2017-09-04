@@ -51,10 +51,13 @@
     <ClInclude Include="PropertiesWnd.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="ImageProcessing.h">
+    <ClInclude Include="MyValueProperty.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="MyValueProperty.h">
+    <ClInclude Include="ImageProcessing.cuh">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Import.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -84,9 +87,6 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="PropertiesWnd.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="ImageProcessing.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="MyValueProperty.cpp">
@@ -179,5 +179,10 @@
     <None Include="res\ImageEnhancement.rc2">
       <Filter>资源文件</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="ImageProcessing.cu">
+      <Filter>源文件</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>
